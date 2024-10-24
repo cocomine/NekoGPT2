@@ -1,8 +1,11 @@
+import asyncio
 import os
 
 import discord
 from discord import Message
-from openai import OpenAI, AssistantEventHandler
+from httpcore import stream
+from openai import OpenAI
+from openai.types.beta.assistant_stream_event import ThreadMessageDelta, ThreadMessageCompleted
 from typing_extensions import override
 
 
@@ -64,72 +67,35 @@ class Prompt:
         async with message.channel.typing():
             message_obj_list = [message]  # all discord message obj list
             msg_all = ""  # all season message
+            already_send_msg_len = 0 # already send message length
 
-            message = self.client.beta.threads.messages.create(
+            self.client.beta.threads.messages.create(
                 thread_id=conversation_id,
                 role="user",
                 content=prompt
             )
 
-            with self.client.beta.threads.runs.stream(
-                    thread_id=conversation_id,
-                    assistant_id=os.getenv("OPENAI_ASSISTANT_ID"),
-                    event_handler=EventHandler(message),
-            ) as stream:
-                stream.until_done()
+            stream = self.client.beta.threads.runs.create(
+                thread_id=conversation_id,
+                assistant_id=os.getenv("OPENAI_ASSISTANT_ID"),
+                stream=True
+            )
 
-            """
-            async for x in self.client.ask(prompt, conversation_id=conversation_id):
-                if x['message'] != "" and x['message'] != prompt:
-                    tmp = x['message'][len(msg_all):]
+            for event in stream:
+                # get message in stream
+                if isinstance(event, ThreadMessageDelta):
+                    value = event.data.delta.content[0].text.value
+                    if value is not None:
+                        msg_all += value
 
-                    if len(tmp) >= 10 or x['end_turn'] is True:
-                        # if message is too long, send it
-                        if (len(tmp) + len(msg)) >= 2000:
-                            msg = tmp
-                            message = await message.reply(tmp)
-                            message_obj_list.append(message)
+                # send message
+                # if message is not empty and new message length is more than 10
+                if msg_all != "" and (len(msg_all) - already_send_msg_len) > 10:
+                    await message.edit(content=msg_all)
+                    already_send_msg_len = len(msg_all)
 
-                        # else, add it to msg
-                        else:
-                            msg += tmp
-                            await message.edit(content=msg)
-
-                        msg_all += tmp
-            """
+                # if message is completed
+                if isinstance(event, ThreadMessageCompleted):
+                    await message.edit(content=msg_all)
 
             return msg_all, message_obj_list
-
-
-class EventHandler(AssistantEventHandler):
-
-    def __init__(self, message: discord.Message):
-        self.message = message #discord message
-        self.msg = ""  # message string
-        self.current_edited_msg = 0 # already send to discord str len
-        super().__init__()
-
-    @override
-    def on_text_created(self, text) -> None:
-        print(f"\nassistant > ", end="", flush=True)
-
-    @override
-    def on_text_delta(self, delta, snapshot):
-        self.msg += delta.value
-
-        #if(len(self.msg) - self.current_edited_msg > 10):
-        self.message.edit(content=self.msg)
-        print(delta.value, end="", flush=True)
-
-    def on_tool_call_created(self, tool_call):
-        print(f"\nassistant > {tool_call.type}\n", flush=True)
-
-    def on_tool_call_delta(self, delta, snapshot):
-        if delta.type == 'code_interpreter':
-            if delta.code_interpreter.input:
-                print(delta.code_interpreter.input, end="", flush=True)
-            if delta.code_interpreter.outputs:
-                print(f"\n\noutput >", flush=True)
-                for output in delta.code_interpreter.outputs:
-                    if output.type == "logs":
-                        print(f"\n{output.logs}", flush=True)

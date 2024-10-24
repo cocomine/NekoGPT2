@@ -2,3 +2,5 @@
 /database/
 /docker-compose.yml
 /venv/
+/docker-compose-tamplate.local.yml
+/src/log.txt

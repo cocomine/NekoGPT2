@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import re
+from os.path import exists
 
 import discord
 from discord import Color, Forbidden
@@ -10,6 +11,7 @@ from discord.ext import commands
 import Mp3ToMp4
 import share_var
 from GenAudioBtn import GenAudioBtn
+from GenAudioErrorBtn import GenAudioErrorBtn
 from Prompt import Prompt
 from ReGenBtn import ReGenBtn
 from STT import STT
@@ -84,18 +86,18 @@ class Reply:
             Mp3ToMp4.convert(f"voice-message_{conversation}.mp3", f"voice-message_{conversation}.mp4")
 
             # upload voice message to discord
-            with open(f"voice-message_{conversation}.mp4", "rb") as file:
-                await msg.edit(attachments=[discord.File(file, filename=f"voice-message_{conversation}.mp4")])
+            if exists(f"voice-message_{conversation}.mp4") :
+                with open(f"voice-message_{conversation}.mp4", "rb") as file:
+                    await msg.edit(attachments=[discord.File(file, filename=f"voice-message_{conversation}.mp4")])
 
-            # remove Generating voice message button
-            await msg.edit(view=None)
+                # remove mp4
+                os.remove(f"voice-message_{conversation}.mp4")
 
-            # remove mp4
-            os.remove(f"voice-message_{conversation}.mp4")
-
-            # convert text to voice message(old method)
-            # voice = await self.tts.text_to_speech_bytes(reply)
-            # await msg.edit(attachments=[discord.File(io.BytesIO(voice), filename="voice-message.mp3")])
+                # remove Generating voice message button
+                await msg.edit(view=None)
+            else:
+                btn = GenAudioErrorBtn()
+                await msg.edit(view=btn)
 
         await message.add_reaction("✅")  # add check mark
 
@@ -156,7 +158,7 @@ class Reply:
             await msg.edit(view=btn)
 
         except Exception as e:
-            logging.error(e)
+            logging.error(e.with_traceback())
             # add error reaction
             await message.add_reaction("❌")
             await message.reply("🔥 Oh no! Something went wrong. Please try again later.")

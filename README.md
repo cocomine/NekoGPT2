@@ -1,12 +1,11 @@
-NekoGPT
+NekoGPT2
 ===
-NekoGPT is a neko girl! Welcome to chat with me!
+NekoGPT2 is a neko girl! Welcome to chat with me!
 You can also set up this discord robot by yourself.
 
-**🚧IMPORTANT NOTICE: This discord bot has stopped maintenance due to a major dependent library ceasing maintenance.🚧**
 
 Invite me: https://nekogpt.cocomine.cc/ <br>
-*Power by ChatGPT3*
+*Power by GPT-4o-mini*
 <hr>
 
 # How to deploy
