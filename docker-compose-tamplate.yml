@@ -10,9 +10,15 @@ services:
             - DISCORD_TOKEN=
             - SPEECH_KEY=
             - SPEECH_REGION=
-            - CHATGPT_BASE_URL=default
+            - OPENAI_BASE_URL=default
             - OPENAI_API_KEY=
             - OPENAI_ASSISTANT_ID=
+            - SQL_DRIVER=sqlite3
+            - MYSQL_HOST=
+            - MYSQL_PORT=
+            - MYSQL_USER=
+            - MYSQL_PASSWORD=
+            - MYSQL_DATABASE=
         networks:
             - nekogpt_net
         volumes:

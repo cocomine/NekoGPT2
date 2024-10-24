@@ -10,6 +10,11 @@ ENV SPEECH_REGION (Your Speech region)
 ENV OPENAI_BASE_URL default
 ENV OPENAI_API_KEY (Your Openai api key)
 ENV OPENAI_ASSISTANT_ID=""
+ENV MYSQL_HOST=""
+ENV MYSQL_PORT=""
+ENV MYSQL_USER=""
+ENV MYSQL_PASSWORD=""
+ENV MYSQL_DATABASE=""
 
 # set-up command
 RUN apt-get --yes update; apt-get --yes upgrade;
