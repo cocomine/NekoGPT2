@@ -28,7 +28,7 @@ class Reply:
         """
         self.r = share_var.redis_conn
         self.db = share_var.sql_conn
-        self.prompt = Prompt(share_var.chatbot_conn)
+        self.prompt = Prompt(share_var.openai_client)
         self.client = client
         self.stt = STT(os.environ["SPEECH_KEY"], os.environ["SPEECH_REGION"])
         self.tts = TTS(os.environ["SPEECH_KEY"], os.environ["SPEECH_REGION"])
@@ -146,7 +146,7 @@ class Reply:
 
             # reply message
             message_obj_list = await self.reply(message, conversation, msg)
-            msg = message_obj_list[len(message_obj_list) - 1]
+            msg = message_obj_list[-1]
 
             # add regenerate button
             async def callback():

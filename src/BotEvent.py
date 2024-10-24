@@ -18,7 +18,7 @@ def set_event_lister(client: commands.Bot, bot_name: str):
 
     db = share_var.sql_conn  # get database connection
     r = share_var.redis_conn  # get redis connection
-    prompt = Prompt(share_var.chatbot_conn)  # create prompt object
+    prompt = Prompt(share_var.openai_client)  # create prompt object
     reply = Reply(client)  # create reply object
 
     @client.event

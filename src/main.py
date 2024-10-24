@@ -9,8 +9,9 @@ from dotenv import load_dotenv
 from redis.asyncio.retry import Retry
 from redis.backoff import ExponentialBackoff
 from redis.exceptions import (BusyLoadingError, ConnectionError, TimeoutError)
-from revChatGPT.V1 import AsyncChatbot
+from openai import OpenAI
 
+import openai
 import DatabaseHelper
 import share_var
 from BotCmd import set_command
@@ -24,7 +25,10 @@ def start(bot_name="ChatGPT"):
     logging.info(f"{bot_name} Discord Bot is starting... (v0.2.3)")
 
     # create ChatGPT chatbot
-    share_var.chatbot_conn = AsyncChatbot(config={"access_token": os.getenv("CHATGPT_TOKEN")})
+    if os.getenv("OPENAI_BASE_URL") == "default":
+        share_var.openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    else:
+        share_var.openai_client = OpenAI(base_url=os.getenv("OPENAI_BASE_URL"), api_key=os.getenv("OPENAI_API_KEY"))
     logging.info(f"{bot_name} ChatGPT is connected.")
 
     # create mysql connection

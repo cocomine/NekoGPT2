@@ -20,7 +20,7 @@ def set_command(client: commands.Bot, bot_name: str):
     tree = client.tree  # get command tree
     r = share_var.redis_conn  # get redis connection
     db = share_var.sql_conn  # get database connection
-    prompt = Prompt(share_var.chatbot_conn)  # create prompt object
+    prompt = Prompt(share_var.openai_client)  # create prompt object
 
     # ping command
     @tree.command(name="ping", description="Check bot latency")

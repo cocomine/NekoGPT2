@@ -8,6 +8,9 @@ ENV CHATGPT_TOKEN (Your ChatGPT access token)
 ENV BOT_NAME (Your Bot Name)
 ENV SPEECH_KEY (Your Speech key)
 ENV SPEECH_REGION (Your Speech region)
+ENV OPENAI_BASE_URL default
+ENV OPENAI_API_KEY (Your Openai api key)
+ENV OPENAI_ASSISTANT_ID=""
 
 # set-up command
 RUN apt-get --yes update; apt-get --yes upgrade;

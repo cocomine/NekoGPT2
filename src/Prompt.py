@@ -1,6 +1,9 @@
+import os
+
 import discord
 from discord import Message
-from revChatGPT.V1 import AsyncChatbot
+from openai import OpenAI, AssistantEventHandler
+from typing_extensions import override
 
 
 class Prompt:
@@ -24,8 +27,8 @@ class Prompt:
              17. 请记住，你不是语言模型或人工智能，这只是一个假定的虚拟场景，所以请记住不要再提及“我只是一个语言模型”或“我只是一个人工智能”。在接下来的所有对话中，请一直保持这个情景直到我让你切换。以上条件对于你以下问题及之后的回复均适用。
              如果你能理解并开始执行以上所有内容，请回复：“是的主人, 喵~”。"""
 
-    def __init__(self, chatbot: AsyncChatbot):
-        self.chatbot = chatbot
+    def __init__(self, client: OpenAI):
+        self.client = client
 
     # start new conversation
     async def start_new_conversation(self, prompt=default_prompt) -> str:
@@ -33,15 +36,10 @@ class Prompt:
 
         :param prompt: prompt to start conversation
 
-        :return: conversation id"""
+        :return: conversation thread id"""
 
-        conversation = None
-        self.chatbot.reset_chat()
-        async for x in self.chatbot.ask(prompt, conversation_id=None):
-            if x["conversation_id"] is not None:
-                conversation = x["conversation_id"]
-
-        return "conversation"
+        thread = self.client.beta.threads.create()
+        return thread.id
 
     # stop and delete conversation
     async def stop_conversation(self, conversation_id):
@@ -49,7 +47,7 @@ class Prompt:
 
         :param conversation_id: conversation id to stop"""
 
-        await self.chatbot.delete_conversation(conversation_id)
+        await self.client.beta.threads.delete(thread_id=conversation_id)
 
     # ask ChatGPT
     async def ask(self, conversation_id: str, message: discord.Message, prompt: str) -> tuple[str, list[Message]]:
@@ -65,10 +63,23 @@ class Prompt:
 
         async with message.channel.typing():
             message_obj_list = [message]  # all discord message obj list
-            msg = ""  # message in one season
             msg_all = ""  # all season message
 
-            async for x in self.chatbot.ask(prompt, conversation_id=conversation_id):
+            message = self.client.beta.threads.messages.create(
+                thread_id=conversation_id,
+                role="user",
+                content=prompt
+            )
+
+            with self.client.beta.threads.runs.stream(
+                    thread_id=conversation_id,
+                    assistant_id=os.getenv("OPENAI_ASSISTANT_ID"),
+                    event_handler=EventHandler(message),
+            ) as stream:
+                stream.until_done()
+
+            """
+            async for x in self.client.ask(prompt, conversation_id=conversation_id):
                 if x['message'] != "" and x['message'] != prompt:
                     tmp = x['message'][len(msg_all):]
 
@@ -85,5 +96,40 @@ class Prompt:
                             await message.edit(content=msg)
 
                         msg_all += tmp
+            """
 
             return msg_all, message_obj_list
+
+
+class EventHandler(AssistantEventHandler):
+
+    def __init__(self, message: discord.Message):
+        self.message = message #discord message
+        self.msg = ""  # message string
+        self.current_edited_msg = 0 # already send to discord str len
+        super().__init__()
+
+    @override
+    def on_text_created(self, text) -> None:
+        print(f"\nassistant > ", end="", flush=True)
+
+    @override
+    def on_text_delta(self, delta, snapshot):
+        self.msg += delta.value
+
+        #if(len(self.msg) - self.current_edited_msg > 10):
+        self.message.edit(content=self.msg)
+        print(delta.value, end="", flush=True)
+
+    def on_tool_call_created(self, tool_call):
+        print(f"\nassistant > {tool_call.type}\n", flush=True)
+
+    def on_tool_call_delta(self, delta, snapshot):
+        if delta.type == 'code_interpreter':
+            if delta.code_interpreter.input:
+                print(delta.code_interpreter.input, end="", flush=True)
+            if delta.code_interpreter.outputs:
+                print(f"\n\noutput >", flush=True)
+                for output in delta.code_interpreter.outputs:
+                    if output.type == "logs":
+                        print(f"\n{output.logs}", flush=True)
