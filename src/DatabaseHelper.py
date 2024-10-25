@@ -21,11 +21,12 @@ def database_helper(db: Connection | PooledMySQLConnection | MySQLConnectionAbst
     def initializing():
         # Initialize database
         logging.info(f"{bot_name} Initializing database...")
+        cursor = cursor_wrapper(db)
 
         cursor.execute(
-            "create table if not exists Guild(Guild_ID varchar(25) not null primary key, replyAt tinyint(1) default 1 not null)")
+            "create table if not exists Guild(Guild_ID varchar(25) not null primary key, replyAt tinyint(1) default 1 not null)", [])
         cursor.execute(
-            "create table if not exists DM(User varchar(25) not null primary key, conversation varchar(35) not null)")
+            "create table if not exists DM(User varchar(25) not null primary key, conversation varchar(35) not null)", [])
         cursor.execute("""create table if not exists ReplyAt(
                     Guild_ID     varchar(25)             not null,
                     user         varchar(25)             not null,
@@ -34,7 +35,7 @@ def database_helper(db: Connection | PooledMySQLConnection | MySQLConnectionAbst
                     constraint ReplyAt_Guild_Guild_ID_fk
                         foreign key (Guild_ID) references Guild (Guild_ID)
                             on update cascade on delete cascade
-                )""")
+                )""", [])
         cursor.execute("""create table if not exists ReplyThis(
                     Guild_ID     varchar(25)             not null,
                     channel_ID   varchar(25)             not null,
@@ -43,10 +44,10 @@ def database_helper(db: Connection | PooledMySQLConnection | MySQLConnectionAbst
                     constraint ReplyThis_Guild_Guild_ID_fk
                         foreign key (Guild_ID) references Guild (Guild_ID)
                             on update cascade on delete cascade
-                )""")
+                )""", [])
         cursor.execute(
-            "CREATE TABLE if not exists `setting` (`key` varchar(20) NOT NULL, `value` TEXT NOT NULL, PRIMARY KEY(`key`))")
-        cursor.execute("INSERT INTO setting (`key`, `value`) VALUES ('version', '0.4')")
+            "CREATE TABLE if not exists `setting` (`key` varchar(20) NOT NULL, `value` TEXT NOT NULL, PRIMARY KEY(`key`))", [])
+        cursor.execute("INSERT INTO setting (`key`, `value`) VALUES ('version', '0.4')", [])
         db.commit()
 
         logging.info(f"{bot_name} Database initialized.")
@@ -57,6 +58,8 @@ def database_helper(db: Connection | PooledMySQLConnection | MySQLConnectionAbst
         initializing()
     except sqlite3.Error:
         initializing()
+    finally:
+        db.commit()
 
     # check database version
     version = cursor.fetchone()

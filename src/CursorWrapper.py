@@ -33,7 +33,7 @@ class Sqlite3CursorWrapper(Cursor):
         """
         super().__init__(connection)
 
-    def execute(self, query: str, params=None):
+    def execute(self, query: str, params=[]):
         """
         Executes a SQL query after replacing the parameter placeholders.
 
