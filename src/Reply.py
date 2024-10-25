@@ -10,6 +10,7 @@ from discord.ext import commands
 
 import Mp3ToMp4
 import share_var
+from CursorWrapper import cursor_wrapper
 from GenAudioBtn import GenAudioBtn
 from GenAudioErrorBtn import GenAudioErrorBtn
 from Prompt import Prompt
@@ -109,7 +110,8 @@ class Reply:
         Handle DM message
         :param message: Discord Message Object
         """
-        cursor = self.db.cursor()
+        cursor = cursor_wrapper(self.db)
+
 
         # check if bot is replying
         try:
@@ -131,14 +133,14 @@ class Reply:
             # check if conversation is started?
             conversation = await self.r.hget("DM", str(message.author.id))
             if conversation is None:
-                cursor.execute("SELECT conversation FROM DM WHERE User = ?", (message.author.id,))
+                cursor.execute("SELECT conversation FROM DM WHERE User = %s", (message.author.id,))
                 result = cursor.fetchone()
 
                 # start conversation if not started
                 if result is None:
                     conversation = await self.prompt.start_new_conversation()
-                    cursor.execute("INSERT INTO DM (User, conversation) VALUES (?, ?)",
-                                   (message.author.id, conversation))
+                    cursor.execute("INSERT INTO DM (User, conversation) VALUES (%s, %s)",
+                                   (str(message.author.id), str(conversation)))
                     self.db.commit()
                     await asyncio.sleep(1)
                 else:
@@ -158,7 +160,8 @@ class Reply:
             await msg.edit(view=btn)
 
         except Exception as e:
-            logging.error(e.with_traceback())
+            logging.error(e)
+            raise e #debug
             # add error reaction
             await message.add_reaction("❌")
             await message.reply("🔥 Oh no! Something went wrong. Please try again later.")
@@ -176,12 +179,12 @@ class Reply:
         Handle @mention message
         :param message: Discord Message Object
         """
-        cursor = self.db.cursor()
+        cursor = cursor_wrapper(self.db)
 
         # check replyAt is enabled
         result = await (self.r.hget("Guild.replyAt", str(message.guild.id)))
         if result is None:
-            cursor.execute("SELECT * FROM Guild WHERE Guild_ID = ? AND replyAt = TRUE", (message.guild.id,))
+            cursor.execute("SELECT * FROM Guild WHERE Guild_ID = %s AND replyAt = TRUE", (message.guild.id,))
             result = cursor.fetchone()
             await self.r.hset("Guild.replyAt", str(message.guild.id), ("0" if result is None else "1"))
 
@@ -210,14 +213,14 @@ class Reply:
             conversation = await self.r.hget("ReplyAt", f"{message.guild.id}.{message.author.id}")
             logging.info(conversation)
             if conversation is None:
-                cursor.execute("SELECT conversation FROM ReplyAt WHERE Guild_ID = ? AND user = ?",
+                cursor.execute("SELECT conversation FROM ReplyAt WHERE Guild_ID = %s AND user = %s",
                                (message.guild.id, message.author.id))
                 result = cursor.fetchone()
 
                 # start conversation if not started
                 if result is None:
                     conversation = await self.prompt.start_new_conversation()
-                    cursor.execute("INSERT INTO ReplyAt (Guild_ID, user, conversation) VALUES (?, ?, ?)",
+                    cursor.execute("INSERT INTO ReplyAt (Guild_ID, user, conversation) VALUES (%s, %s, %s)",
                                    (message.guild.id, message.author.id, conversation))
                     self.db.commit()
                     await asyncio.sleep(1)
@@ -261,12 +264,12 @@ class Reply:
         Handle channel message
         :param message: Discord Message Object
         """
-        cursor = self.db.cursor()
+        cursor = cursor_wrapper(self.db)
 
         # get conversation
         conversation = await self.r.hget("ReplyThis", f"{message.guild.id}.{message.channel.id}")
         if conversation is None:
-            cursor.execute("SELECT conversation FROM ReplyThis WHERE Guild_ID = ? AND channel_ID = ?",
+            cursor.execute("SELECT conversation FROM ReplyThis WHERE Guild_ID = %s AND channel_ID = %s",
                        (message.guild.id, message.channel.id))
             result = cursor.fetchone()
             conversation = result[0] if result is not None else None

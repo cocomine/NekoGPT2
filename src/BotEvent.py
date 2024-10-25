@@ -4,6 +4,7 @@ import discord
 from discord.ext import commands
 
 import share_var
+from CursorWrapper import cursor_wrapper
 from Prompt import Prompt
 from Reply import Reply
 
@@ -53,9 +54,9 @@ def set_event_lister(client: commands.Bot, bot_name: str):
         logging.info(f"Joined {guild.name} server. ({guild.id})")
 
         # add into database
-        cursor = db.cursor()
+        cursor = cursor_wrapper(db)
         await r.hset("Guild.replyAt", str(guild.id), "1")
-        cursor.execute("INSERT INTO Guild (Guild_ID) VALUES (?)", (guild.id,))
+        cursor.execute("INSERT INTO Guild (Guild_ID) VALUES (%s)", (guild.id,))
         db.commit()
 
     # remove from server
@@ -66,10 +67,10 @@ def set_event_lister(client: commands.Bot, bot_name: str):
         :param guild: Discord server(Guild) object
         """
         logging.info(f"Left {guild.name} server. ({guild.id})")
-        cursor = db.cursor()
+        cursor = cursor_wrapper(db)
 
         # stop all conversation
-        cursor.execute("SELECT conversation, channel_ID FROM ReplyThis WHERE Guild_ID = ?", (guild.id,))
+        cursor.execute("SELECT conversation, channel_ID FROM ReplyThis WHERE Guild_ID = %s", (guild.id,))
         result = cursor.fetchall()
         for row in result:
             if row[0] is not None:
@@ -80,7 +81,7 @@ def set_event_lister(client: commands.Bot, bot_name: str):
                     logging.warning(e)
 
         # stop @mention conversation
-        cursor.execute("SELECT conversation, user FROM ReplyAt WHERE Guild_ID = ?", (guild.id,))
+        cursor.execute("SELECT conversation, user FROM ReplyAt WHERE Guild_ID = %s", (guild.id,))
         result = cursor.fetchall()
         for row in result:
             if row[0] is not None:
@@ -92,7 +93,7 @@ def set_event_lister(client: commands.Bot, bot_name: str):
 
         # remove from database
         await r.hdel("Guild.replyAt", str(guild.id))  # remove from redis
-        cursor.execute("DELETE FROM Guild WHERE Guild_ID = ?", (guild.id,))
+        cursor.execute("DELETE FROM Guild WHERE Guild_ID = %s", (guild.id,))
         db.commit()
 
     @client.event
@@ -101,10 +102,10 @@ def set_event_lister(client: commands.Bot, bot_name: str):
         When channel is deleted
         :param channel: Discord channel object
         """
-        cursor = db.cursor()
+        cursor = cursor_wrapper(db)
 
         # stop all conversation
-        cursor.execute("SELECT conversation FROM ReplyThis WHERE Channel_ID = ? AND Guild_ID = ?",
+        cursor.execute("SELECT conversation FROM ReplyThis WHERE Channel_ID = %s AND Guild_ID = %s",
                        (channel.id, channel.guild.id))
         result = cursor.fetchall()
         for row in result:
@@ -112,7 +113,7 @@ def set_event_lister(client: commands.Bot, bot_name: str):
                 await r.hdel("ReplyThis", f"{channel.guild.id}.{channel.id}")  # set into redis
                 await prompt.stop_conversation(row[0])
 
-        cursor.execute("DELETE FROM ReplyThis WHERE channel_ID = ? AND Guild_ID = ?", (channel.id, channel.guild.id))
+        cursor.execute("DELETE FROM ReplyThis WHERE channel_ID = %s AND Guild_ID = %s", (channel.id, channel.guild.id))
         db.commit()
 
     # when message is sent

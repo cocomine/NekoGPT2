@@ -6,6 +6,8 @@ import mysql.connector
 from mysql.connector.abstracts import MySQLConnectionAbstract
 from mysql.connector.pooling import PooledMySQLConnection
 
+from CursorWrapper import cursor_wrapper
+
 
 def database_helper(db: Connection | PooledMySQLConnection | MySQLConnectionAbstract , bot_name: str):
     """
@@ -13,7 +15,7 @@ def database_helper(db: Connection | PooledMySQLConnection | MySQLConnectionAbst
     :param db: database connection
     :param bot_name: bot name
     """
-    cursor = db.cursor()
+    cursor = cursor_wrapper(db)
 
     # Initialize database
     def initializing():
@@ -21,22 +23,22 @@ def database_helper(db: Connection | PooledMySQLConnection | MySQLConnectionAbst
         logging.info(f"{bot_name} Initializing database...")
 
         cursor.execute(
-            "create table if not exists Guild(Guild_ID char(25) not null primary key, replyAt tinyint(1) default 1 not null)")
+            "create table if not exists Guild(Guild_ID varchar(25) not null primary key, replyAt tinyint(1) default 1 not null)")
         cursor.execute(
-            "create table if not exists DM(User char(25) not null primary key, conversation char(30) not null)")
+            "create table if not exists DM(User varchar(25) not null primary key, conversation varchar(35) not null)")
         cursor.execute("""create table if not exists ReplyAt(
-                    Guild_ID     char(25)             not null,
-                    user         char(25)             not null,
-                    conversation char(30)             null,
+                    Guild_ID     varchar(25)             not null,
+                    user         varchar(25)             not null,
+                    conversation varchar(35)             null,
                     primary key (Guild_ID, user),
                     constraint ReplyAt_Guild_Guild_ID_fk
                         foreign key (Guild_ID) references Guild (Guild_ID)
                             on update cascade on delete cascade
                 )""")
         cursor.execute("""create table if not exists ReplyThis(
-                    Guild_ID     char(25)             not null,
-                    channel_ID   char(25)             not null,
-                    conversation char(30)             null,
+                    Guild_ID     varchar(25)             not null,
+                    channel_ID   varchar(25)             not null,
+                    conversation varchar(35)             null,
                     primary key (Guild_ID, channel_ID),
                     constraint ReplyThis_Guild_Guild_ID_fk
                         foreign key (Guild_ID) references Guild (Guild_ID)

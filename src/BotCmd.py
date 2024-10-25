@@ -2,10 +2,12 @@ import asyncio
 import logging
 
 import discord
+import mysql.connector
 from discord import Color, Embed
 from discord.ext import commands
 
 import share_var
+from CursorWrapper import cursor_wrapper
 from Prompt import Prompt
 
 
@@ -48,8 +50,8 @@ def set_command(client: commands.Bot, bot_name: str):
         logging.info(f"{interaction.user} set {interaction.guild} reply all message in {interaction.channel}")
         await interaction.response.defer(ephemeral=True)
 
-        cursor = db.cursor()
-        cursor.execute("SELECT conversation FROM ReplyThis WHERE Guild_ID = ? AND channel_ID = ?",
+        cursor = cursor_wrapper(db)
+        cursor.execute("SELECT conversation FROM ReplyThis WHERE Guild_ID = %s AND channel_ID = %s",
                        (interaction.guild.id, interaction.channel.id,))
         result = cursor.fetchone()
 
@@ -61,11 +63,29 @@ def set_command(client: commands.Bot, bot_name: str):
             # add into database
             await r.hset("ReplyThis", f"{interaction.guild.id}.{interaction.channel.id}",
                          conversation)  # set into redis
-            cursor.execute("INSERT INTO ReplyThis VALUES (?, ?, ?)",
-                           (interaction.guild.id, interaction.channel.id, conversation))
-            db.commit()
-            await interaction.followup.send(f"🟢 {client.user} will reply all message in this channel. "
-                                            f"The channel will have its own conversation.")
+            try:
+                # if no error, insert new into ReplyThis table
+                cursor.execute("INSERT INTO ReplyThis VALUES (%s, %s, %s)",
+                               (interaction.guild.id, interaction.channel.id, conversation))
+
+                await interaction.followup.send(f"🟢 {client.user} will reply all message in this channel. "
+                                                f"The channel will have its own conversation.")
+            except mysql.connector.Error as e:
+                # if foreign key error, insert new into Guild table
+                cursor.execute("INSERT INTO Guild (Guild_ID) VALUES (%s)", (interaction.guild.id,))
+                cursor.execute("INSERT INTO ReplyThis VALUES (%s, %s, %s)",
+                               (interaction.guild.id, interaction.channel.id, conversation))
+
+                await interaction.followup.send(f"🟢 {client.user} will reply all message in this channel. "
+                                                f"The channel will have its own conversation")
+
+            except Exception as e:
+                # if other error, log the error and tall the user
+                logging.error(e)
+                await interaction.followup.send("🔥 Oh no! Something went wrong. Please try again later.")
+
+            finally:
+                db.commit()
 
         else:
             # stop conversation
@@ -77,7 +97,7 @@ def set_command(client: commands.Bot, bot_name: str):
 
             # remove from database
             await r.hdel("ReplyThis", f"{interaction.guild.id}.{interaction.channel.id}")  # remove from redis
-            cursor.execute("DELETE FROM ReplyThis WHERE Guild_ID = ? AND channel_ID = ?",
+            cursor.execute("DELETE FROM ReplyThis WHERE Guild_ID = %s AND channel_ID = %s",
                            (interaction.guild.id, interaction.channel.id))
             db.commit()
             await interaction.followup.send(f"🔴 {client.user} will not reply all message in this channel")
@@ -96,19 +116,27 @@ def set_command(client: commands.Bot, bot_name: str):
         logging.info(f"{interaction.user} set {interaction.guild} reply @{client.user} message")
         await interaction.response.defer(ephemeral=True)
 
-        cursor = db.cursor()
-        cursor.execute("SELECT * FROM Guild WHERE Guild_ID = ? AND replyAt = TRUE", (interaction.guild.id,))
+        cursor = cursor_wrapper(db)
+        cursor.execute("SELECT replyAt FROM Guild WHERE Guild_ID = %s", (interaction.guild.id,))
         result = cursor.fetchone()
 
         if result is None:
-            cursor.execute("UPDATE Guild SET replyAt = TRUE WHERE Guild_ID = ?", (interaction.guild.id,))
+            # add into database
+            cursor.execute("INSERT INTO Guild (Guild_ID, replyAt) VALUES (%s, TRUE)", (interaction.guild.id,))
+            db.commit()
+            await r.hset("Guild.replyAt", str(interaction.guild.id), "1")
+            await interaction.followup.send(f"🟢 {client.user} will reply <@{client.user.id}> message. "
+                                            f"Each user will have its own conversation.")
+        elif result[0] == 0:
+            # start conversation
+            cursor.execute("UPDATE Guild SET replyAt = TRUE WHERE Guild_ID = %s", (interaction.guild.id,))
             db.commit()
             await r.hset("Guild.replyAt", str(interaction.guild.id), "1")  # set into redis
             await interaction.followup.send(f"🟢 {client.user} will reply <@{client.user.id}> message. "
                                             f"Each user will have its own conversation.")
-        else:
+        elif result[0] == 1:
             # stop conversation
-            cursor.execute("SELECT conversation, user FROM ReplyAt WHERE Guild_ID = ?", (interaction.guild.id,))
+            cursor.execute("SELECT conversation, user FROM ReplyAt WHERE Guild_ID = %s", (interaction.guild.id,))
             result = cursor.fetchall()
 
             followup = await interaction.followup.send(
@@ -127,8 +155,8 @@ def set_command(client: commands.Bot, bot_name: str):
                     content=f"<a:loading:1112646025090445354> {client.user} stopping mention conversation ({i + 1}/{len(result)})")
 
             # remove from database
-            cursor.execute("DELETE FROM ReplyAt WHERE Guild_ID = ?", (interaction.guild.id,))
-            cursor.execute("UPDATE Guild SET replyAt = FALSE WHERE Guild_ID = ?", (interaction.guild.id,))
+            cursor.execute("DELETE FROM ReplyAt WHERE Guild_ID = %s", (interaction.guild.id,))
+            cursor.execute("UPDATE Guild SET replyAt = FALSE WHERE Guild_ID = %s", (interaction.guild.id,))
             db.commit()
 
             # set into redis
@@ -172,10 +200,10 @@ def set_command(client: commands.Bot, bot_name: str):
         """
         logging.info(f"{interaction.user} reset all conversation in {interaction.guild}")
         await interaction.response.defer(ephemeral=True)
-        cursor = db.cursor()
+        cursor = cursor_wrapper(db)
 
         # Restart ReplyThis conversation
-        cursor.execute("SELECT conversation, channel_ID FROM ReplyThis WHERE Guild_ID = ?", (interaction.guild.id,))
+        cursor.execute("SELECT conversation, channel_ID FROM ReplyThis WHERE Guild_ID = %s", (interaction.guild.id,))
         result = cursor.fetchall()
 
         # send process message
@@ -194,7 +222,7 @@ def set_command(client: commands.Bot, bot_name: str):
             # start new conversation
             conversation = await prompt.start_new_conversation()
             await r.hset("ReplyThis", f"{interaction.guild.id}.{row[1]}", conversation)  # set into redis
-            cursor.execute("UPDATE ReplyThis SET conversation = ? WHERE Guild_ID = ? AND channel_ID = ?",
+            cursor.execute("UPDATE ReplyThis SET conversation = %s WHERE Guild_ID = %s AND channel_ID = %s",
                            (conversation, interaction.guild.id, row[1],))
 
             await followup.edit(
@@ -202,7 +230,7 @@ def set_command(client: commands.Bot, bot_name: str):
         db.commit()
 
         # Stop ReplyAt conversation
-        cursor.execute("SELECT conversation, user FROM ReplyAt WHERE Guild_ID = ?", (interaction.guild.id,))
+        cursor.execute("SELECT conversation, user FROM ReplyAt WHERE Guild_ID = %s", (interaction.guild.id,))
         result = cursor.fetchall()
 
         # send process message
@@ -222,7 +250,7 @@ def set_command(client: commands.Bot, bot_name: str):
                 content=f"<a:loading:1112646025090445354> {client.user} stopping mention conversation ({i + 1}/{len(result)})")
 
         # delete conversation
-        cursor.execute("DELETE FROM ReplyAt WHERE Guild_ID = ?", (interaction.guild.id,))
+        cursor.execute("DELETE FROM ReplyAt WHERE Guild_ID = %s", (interaction.guild.id,))
         db.commit()
 
         await followup.edit(content=f"🔄 {client.user} has reset all conversation in this server.")
@@ -242,8 +270,8 @@ def set_command(client: commands.Bot, bot_name: str):
 
         logging.info(f"{interaction.user} reset conversation in DM")
         await interaction.response.defer(ephemeral=True)
-        cursor = db.cursor()
-        cursor.execute("SELECT conversation FROM DM WHERE User = ?", (interaction.user.id,))
+        cursor = cursor_wrapper(db)
+        cursor.execute("SELECT conversation FROM DM WHERE User = %s", (interaction.user.id,))
         result = cursor.fetchone()
 
         # stop conversation
@@ -255,7 +283,7 @@ def set_command(client: commands.Bot, bot_name: str):
 
             # reset conversation
             conversation = await prompt.start_new_conversation()
-            cursor.execute("UPDATE DM SET conversation = ? WHERE User = ?",
+            cursor.execute("UPDATE DM SET conversation = %s WHERE User = %s",
                            (conversation, interaction.user.id,))
             db.commit()
 
@@ -274,10 +302,10 @@ def set_command(client: commands.Bot, bot_name: str):
         """
         logging.info(f"{interaction.user} show help menu")
         await interaction.response.defer()
-        cursor = db.cursor()
+        cursor = cursor_wrapper(db)
 
         # Get all reply channel
-        cursor.execute("SELECT channel_ID FROM ReplyThis WHERE Guild_ID = ?", (interaction.guild.id,))
+        cursor.execute("SELECT channel_ID FROM ReplyThis WHERE Guild_ID = %s", (interaction.guild.id,))
         result = cursor.fetchall()
 
         _reply_this = "🔴 Not set any channel"
@@ -285,11 +313,11 @@ def set_command(client: commands.Bot, bot_name: str):
             _reply_this = ", ".join(f"<#{x[0]}>" for x in result)
 
         # Get @mention is enabled or not
-        cursor.execute("SELECT replyAt FROM Guild WHERE Guild_ID = ?", (interaction.guild.id,))
+        cursor.execute("SELECT replyAt FROM Guild WHERE Guild_ID = %s", (interaction.guild.id,))
         result = cursor.fetchone()
 
         _reply_at = "🔴 Disabled"
-        if result[0] == 1:
+        if (result is not None) and result[0] == 1:
             _reply_at = "🟢 Enabled"
 
         # Print help menu
