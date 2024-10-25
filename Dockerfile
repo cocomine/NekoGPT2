@@ -1,4 +1,4 @@
-FROM python:3.11.6
+FROM python:3.10.15-bullseye
 LABEL authors="cocomine"
 LABEL version="2.0.0"
 WORKDIR /bot
@@ -10,6 +10,7 @@ ENV SPEECH_REGION (Your Speech region)
 ENV OPENAI_BASE_URL default
 ENV OPENAI_API_KEY (Your Openai api key)
 ENV OPENAI_ASSISTANT_ID=""
+ENV SQL_DRIVER sqlite3
 ENV MYSQL_HOST=""
 ENV MYSQL_PORT=""
 ENV MYSQL_USER=""

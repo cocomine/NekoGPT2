@@ -1,4 +1,5 @@
 import os
+from venv import logger
 
 import discord
 from discord import Message
@@ -75,5 +76,6 @@ class Prompt:
                 # if message is completed
                 if isinstance(event, ThreadMessageCompleted):
                     await message.edit(content=msg_all)
+                    logger.info(f"ChatGPT: {msg_all}")
 
             return msg_all, message_obj_list

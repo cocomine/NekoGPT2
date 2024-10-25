@@ -21,7 +21,7 @@ from Create_Assistant import create_assistant
 
 # starting bot
 def start(bot_name="ChatGPT"):
-    logging.basicConfig(level=logging.DEBUG)  # set logging level
+    logging.basicConfig(level=(logging.DEBUG if os.getenv('LOG_LEVEL') == "debug" else logging.INFO))  # set logging level
     handler = logging.FileHandler(filename='../database/bot.log', encoding='utf-8', mode='w')  # create log file handler
     logging.info(f"{bot_name} Discord Bot is starting... (v2.0.0)")
 
@@ -71,7 +71,7 @@ def start(bot_name="ChatGPT"):
     # create redis connection
     logging.info(f"{bot_name} Connecting to Redis...")
     retry = Retry(ExponentialBackoff(), 3)
-    share_var.redis_conn = redis.Redis(host='localhost', port=6379, db=0, retry=retry, retry_on_error=[ConnectionError, TimeoutError, BusyLoadingError], decode_responses=True)
+    share_var.redis_conn = redis.Redis(host='redis', port=6379, db=0, retry=retry, retry_on_error=[ConnectionError, TimeoutError, BusyLoadingError], decode_responses=True)
     logging.info(f"{bot_name} Redis is connected.")
 
     client = commands.Bot(command_prefix="!", intents=intents)  # create bot
