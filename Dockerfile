@@ -1,4 +1,4 @@
-FROM python:3.10.15-bullseye
+FROM python:3.10.15-slim-bullseye
 LABEL authors="cocomine"
 LABEL version="2.0.0"
 WORKDIR /bot
@@ -27,6 +27,22 @@ RUN apt --yes install gstreamer1.0-plugins-good
 RUN apt --yes install gstreamer1.0-plugins-bad
 RUN apt --yes install gstreamer1.0-plugins-ugly
 RUN apt --yes install ffmpeg
+
+# Install build tools
+RUN apt --yes install wget
+RUN apt --yes install build-essential
+
+# Install openssl 3.4.0
+RUN wget -O - https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz | tar zxf -
+RUN ./openssl-3.4.0/config --prefix=/usr/local
+RUN make -j $(nproc)
+RUN make install_sw install_ssldirs
+RUN ldconfig -v
+ENV SSL_CERT_DIR /etc/ssl/certs
+
+# Uninstall build tools
+RUN apt --yes remove wget
+RUN apt --yes remove build-essential
 
 # Add requirements
 RUN mkdir "../database"
