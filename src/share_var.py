@@ -12,4 +12,4 @@ openai_client: OpenAI  # ChatGPT connection
 loading_emoji = os.getenv('DISCORD_CUSTOM_LOADING_EMOJI') if (
             os.getenv('DISCORD_CUSTOM_LOADING_EMOJI') is not None or os.getenv(
         'DISCORD_CUSTOM_LOADING_EMOJI') != "") else "🔄"  # Loading emoji
-print(loading_emoji)
+

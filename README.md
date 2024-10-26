@@ -1,6 +1,7 @@
 NekoGPT2
 ===
-NekoGPT2 is a neko girl! Welcome to chat with me!
+NekoGPT2 is a neko girl! Modified from the NekoGPT. Welcome to chat with me!
+It has now been switched to using the official API
 You can also set up this discord robot by yourself.
 
 
@@ -28,28 +29,49 @@ Open the **docker-compose-tamplate** file and edit following content.
 environment:
     # Please fill up following environment variables
     - BOT_NAME=NekoGPT
-    - CHATGPT_TOKEN=
     - DISCORD_TOKEN=
     - SPEECH_KEY=
     - SPEECH_REGION=
-    - CHATGPT_BASE_URL=
+    - OPENAI_BASE_URL=default
+    - OPENAI_API_KEY=
+    - OPENAI_ASSISTANT_ID=
+    - SQL_DRIVER=sqlite3
+    - MYSQL_HOST=
+    - MYSQL_PORT=
+    - MYSQL_USER=
+    - MYSQL_PASSWORD=
+    - MYSQL_DATABASE=
+    - DISCORD_CUSTOM_LOADING_EMOJI=
 ```
 
 3.1: Fill in the corresponding information in the file.
-- DISCORD_TOKEN: Your discord bot token. 
+- BOT_NAME: 
+  - The name of your bot.
+- DISCORD_TOKEN: 
+  - Your discord bot token. 
   - You can get it from https://discord.com/developers/applications
   - Learn more: https://discordpy.readthedocs.io/en/stable/discord.html
-- CHATGPT_TOKEN: Your ChatGPT3 token.
-    - Read the following documents for information: https://github.com/acheong08/ChatGPT/wiki/Authentication
-- BOT_NAME: The name of your bot.
-- SPEECH_KEY and SPEECH_REGION are used to convert text to speech.
-    - You can get it from https://speech.microsoft.com/portal
+- SPEECH_KEY and SPEECH_REGION: 
+  - Are used to convert text to speech.
+  - You can get it from https://speech.microsoft.com/portal
+- OPENAI_BASE_URL:
+  - (Optional) The base URL of the OpenAI API. Default is `https://api.openai.com/v1`.
+- OPENAI_API_KEY: Your OpenAI API key.
+  - You can get it from https://platform.openai.com/api-keys
+- OPENAI_ASSISTANT_ID:
+  - Fill in your own assistant ID. If you do not fill it in, it will be automatically created for you.
+- SQL_DRIVER: 
+  - The database driver used by the bot. The default is `sqlite3`.
+- MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE:
+  - The information of the MySQL database. If you use MySQL, fill in this information.
+- DISCORD_CUSTOM_LOADING_EMOJI:
+  - (Optional) The custom emoji used when the bot is loading. Default is `🔄`.
 
 3.2: Replace **volumes** with the path to the folder where you want to store the database.
 ```YAML
 volumes:
     # Replace this with the path to the folder where you want to store the database.
-    - ./database:/path/to/your/data/folder
+    - /path/to/your/data/folder:/database
 ```
 - Replace `/path/to/your/data/folder` with the path to the folder where you want to store the database.
 - This folder will be used to store the database, so you can use it to back up the database.
