@@ -23,9 +23,9 @@ def database_helper(db: Connection | PooledMySQLConnection | MySQLConnectionAbst
         logging.info(f"{bot_name} Initializing database...")
 
         cursor2.execute(
-            "create table if not exists Guild(Guild_ID varchar(25) not null primary key, replyAt tinyint(1) default 1 not null)", [])
+            "create table if not exists Guild(Guild_ID varchar(25) not null primary key, replyAt tinyint(1) default 1 not null)")
         cursor2.execute(
-            "create table if not exists DM(User varchar(25) not null primary key, conversation varchar(35) not null)", [])
+            "create table if not exists DM(User varchar(25) not null primary key, conversation varchar(35) not null)")
         cursor2.execute("""create table if not exists ReplyAt(
                     Guild_ID     varchar(25)             not null,
                     user         varchar(25)             not null,
@@ -45,8 +45,8 @@ def database_helper(db: Connection | PooledMySQLConnection | MySQLConnectionAbst
                             on update cascade on delete cascade
                 )""", [])
         cursor2.execute(
-            "CREATE TABLE if not exists `setting` (`key` varchar(20) NOT NULL, `value` TEXT NOT NULL, PRIMARY KEY(`key`))", [])
-        cursor2.execute("INSERT INTO setting (`key`, `value`) VALUES ('version', '0.4')", [])
+            "CREATE TABLE if not exists `setting` (`key` varchar(20) NOT NULL, `value` TEXT NOT NULL, PRIMARY KEY(`key`))")
+        cursor2.execute("INSERT INTO setting (`key`, `value`) VALUES ('version', '0.4')")
         db.commit()
 
         logging.info(f"{bot_name} Database initialized.")

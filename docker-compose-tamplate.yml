@@ -19,6 +19,7 @@ services:
             - MYSQL_USER=
             - MYSQL_PASSWORD=
             - MYSQL_DATABASE=
+            - DISCORD_CUSTOM_LOADING_EMOJI=
         networks:
             - nekogpt_net
         volumes:

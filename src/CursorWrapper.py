@@ -14,8 +14,14 @@ def cursor_wrapper(connection):
         A cursor object that is either a MySQL cursor or a wrapped SQLite cursor.
     """
     if isinstance(connection.cursor(), MySQLCursorAbstract):
+        # Reconnect if the connection is not active
+        if not connection.is_connected():
+            connection.reconnect()
+
+        # Return the MySQL cursor
         return connection.cursor()
     else:
+        # Return the wrapped SQLite cursor
         return Sqlite3CursorWrapper(connection)
 
 
@@ -33,7 +39,7 @@ class Sqlite3CursorWrapper(Cursor):
         """
         super().__init__(connection)
 
-    def execute(self, query: str, params=[]):
+    def execute(self, query: str, params=()):
         """
         Executes a SQL query after replacing the parameter placeholders.
 

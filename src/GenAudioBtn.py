@@ -1,5 +1,7 @@
 import discord.ui
 
+import share_var
+
 
 class GenAudioBtn(discord.ui.View):
     """
@@ -9,6 +11,6 @@ class GenAudioBtn(discord.ui.View):
     def __init__(self):
         super().__init__()
 
-    @discord.ui.button(label="Generating voice message...", style=discord.ButtonStyle.gray, emoji="<a:loading:1112646025090445354>", disabled=True)
+    @discord.ui.button(label="Generating voice message...", style=discord.ButtonStyle.gray, emoji=share_var.loading_emoji, disabled=True)
     async def gen_audio(self, interaction: discord.Interaction, button: discord.ui.Button):
         pass

@@ -35,6 +35,7 @@ class Reply:
         self.client = client
         self.stt = STT(os.environ["SPEECH_KEY"], os.environ["SPEECH_REGION"])
         self.tts = TTS(os.environ["SPEECH_KEY"], os.environ["SPEECH_REGION"])
+        self.loading_emoji = share_var.loading_emoji
 
     # Generate reply
     async def reply(self, message: discord.Message, conversation: str, msg: discord.Message) -> list[discord.Message]:
@@ -61,7 +62,7 @@ class Reply:
                                       color=Color.blue(),
                                       type="article")
                 embed.set_author(name=f"{message.author}", icon_url=message.author.avatar.url)
-                await msg.edit(content="<a:loading:1112646025090445354>", embed=embed)
+                await msg.edit(content=self.loading_emoji, embed=embed)
 
         # reply
         reply, message_obj_list = await self.prompt.ask(conversation, msg, ask)
@@ -74,10 +75,10 @@ class Reply:
             await msg.edit(view=btn)
 
             # insert ',' after '喵~' or 'meow~'
-            p = re.compile(r"(喵)~(?!！|。|，|？|!|,|\?|\.)")
+            p = re.compile(r"(喵)~(?![！。，？!,?.])")
             speech_text = p.sub(r'\1~，', reply)
 
-            p = re.compile(r"(meow)~(?!！|。|，|？|!|,|\?|\.)")
+            p = re.compile(r"(meow)~(?![！。，？!,?.])")
             speech_text = p.sub(r'\1~,', speech_text)
 
             # convert text to voice message
@@ -127,8 +128,8 @@ class Reply:
         try:
             # add loading reaction
             await message.remove_reaction("✅", self.client.user)
-            await message.add_reaction("<a:loading:1112646025090445354>")
-            msg = await message.reply("<a:loading:1112646025090445354>")
+            await message.add_reaction(self.loading_emoji)
+            msg = await message.reply(self.loading_emoji)
 
             # check if conversation is started?
             conversation = await self.r.hget("DM", str(message.author.id))
@@ -161,7 +162,6 @@ class Reply:
 
         except Exception as e:
             logging.error(e)
-            raise e #debug
             # add error reaction
             await message.add_reaction("❌")
             await message.reply("🔥 Oh no! Something went wrong. Please try again later.")
@@ -171,7 +171,7 @@ class Reply:
             self.replying_dm.remove(message.author.id)
 
             # remove loading reaction
-            await message.remove_reaction("<a:loading:1112646025090445354>", self.client.user)
+            await message.remove_reaction(self.loading_emoji, self.client.user)
 
     # @mention bot
     async def mention(self, message: discord.Message):
@@ -206,8 +206,8 @@ class Reply:
 
         try:
             # add loading reaction
-            await message.add_reaction("<a:loading:1112646025090445354>")
-            msg = await message.reply("<a:loading:1112646025090445354>")
+            await message.add_reaction(self.loading_emoji)
+            msg = await message.reply(self.loading_emoji)
 
             # check if conversation is started?
             conversation = await self.r.hget("ReplyAt", f"{message.guild.id}.{message.author.id}")
@@ -256,7 +256,7 @@ class Reply:
             self.replying_mention.remove(message.author.id)
 
             # remove loading reaction
-            await message.remove_reaction("<a:loading:1112646025090445354>", self.client.user)
+            await message.remove_reaction(self.loading_emoji, self.client.user)
 
     # channel message
     async def channel(self, message: discord.Message):
@@ -292,8 +292,8 @@ class Reply:
             try:
                 # add loading reaction
                 await message.remove_reaction("✅", self.client.user)
-                await message.add_reaction("<a:loading:1112646025090445354>")
-                msg = await message.reply("<a:loading:1112646025090445354>")
+                await message.add_reaction(self.loading_emoji)
+                msg = await message.reply(self.loading_emoji)
 
                 # reply message
                 message_obj_list = await self.reply(message, conversation, msg)
@@ -322,4 +322,4 @@ class Reply:
                 self.replying_channel.remove((message.guild.id, message.channel.id))
 
                 # remove loading reaction
-                await message.remove_reaction("<a:loading:1112646025090445354>", self.client.user)
+                await message.remove_reaction(self.loading_emoji, self.client.user)

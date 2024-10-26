@@ -3,6 +3,7 @@ LABEL authors="cocomine"
 LABEL version="2.0.0"
 WORKDIR /bot
 
+ENV PYTHON_ENV production
 ENV DISCORD_TOKEN (Your Discord token)
 ENV BOT_NAME (Your Bot Name)
 ENV SPEECH_KEY (Your Speech key)
@@ -16,6 +17,7 @@ ENV MYSQL_PORT=""
 ENV MYSQL_USER=""
 ENV MYSQL_PASSWORD=""
 ENV MYSQL_DATABASE=""
+ENV DISCORD_CUSTOM_LOADING_EMOJI=""
 
 # set-up command
 RUN apt-get --yes update; apt-get --yes upgrade;

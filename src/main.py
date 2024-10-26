@@ -12,6 +12,8 @@ from redis.asyncio.retry import Retry
 from redis.backoff import ExponentialBackoff
 from redis.exceptions import (BusyLoadingError, ConnectionError, TimeoutError)
 
+load_dotenv("../database/.env")  # load .env file
+
 import DatabaseHelper
 import share_var
 from BotCmd import set_command
@@ -71,7 +73,7 @@ def start(bot_name="ChatGPT"):
     # create redis connection
     logging.info(f"{bot_name} Connecting to Redis...")
     retry = Retry(ExponentialBackoff(), 3)
-    share_var.redis_conn = redis.Redis(host='redis', port=6379, db=0, retry=retry, retry_on_error=[ConnectionError, TimeoutError, BusyLoadingError], decode_responses=True)
+    share_var.redis_conn = redis.Redis(host=('localhost' if os.getenv('PYTHON_ENV') != 'production' else 'redis'), port=6379, db=0, retry=retry, retry_on_error=[ConnectionError, TimeoutError, BusyLoadingError], decode_responses=True)
     logging.info(f"{bot_name} Redis is connected.")
 
     client = commands.Bot(command_prefix="!", intents=intents)  # create bot
@@ -80,10 +82,9 @@ def start(bot_name="ChatGPT"):
 
     if os.getenv("DISCORD_TOKEN") is None or os.getenv("DISCORD_TOKEN") == "":
         raise RuntimeError("DISCORD_TOKEN Not Set!")
-    client.run(os.getenv("DISCORD_TOKEN"), log_handler=handler, log_level=logging.INFO)  # run bot
+    client.run(os.getenv("DISCORD_TOKEN"), log_handler=handler, log_level=(logging.DEBUG if os.getenv('LOG_LEVEL') == "debug" else logging.INFO))  # run bot
 
 
 # run bot
 if __name__ == "__main__":
-    load_dotenv("../database/.env")  # load .env file
     start(os.getenv("BOT_NAME"))

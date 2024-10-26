@@ -23,6 +23,7 @@ def set_command(client: commands.Bot, bot_name: str):
     r = share_var.redis_conn  # get redis connection
     db = share_var.sql_conn  # get database connection
     prompt = Prompt(share_var.openai_client)  # create prompt object
+    load_emoji = share_var.loading_emoji  # get loading emoji
 
     # ping command
     @tree.command(name="ping", description="Check bot latency")
@@ -140,7 +141,7 @@ def set_command(client: commands.Bot, bot_name: str):
             result = cursor.fetchall()
 
             followup = await interaction.followup.send(
-                f"<a:loading:1112646025090445354> {client.user} stopping mention conversation (0/{len(result)})")
+                f"{load_emoji} {client.user} stopping mention conversation (0/{len(result)})")
 
             for i in range(len(result)):
                 row = result[i]
@@ -152,7 +153,7 @@ def set_command(client: commands.Bot, bot_name: str):
                         logging.warning(e)
 
                 await followup.edit(
-                    content=f"<a:loading:1112646025090445354> {client.user} stopping mention conversation ({i + 1}/{len(result)})")
+                    content=f"{load_emoji} {client.user} stopping mention conversation ({i + 1}/{len(result)})")
 
             # remove from database
             cursor.execute("DELETE FROM ReplyAt WHERE Guild_ID = %s", (interaction.guild.id,))
@@ -208,7 +209,7 @@ def set_command(client: commands.Bot, bot_name: str):
 
         # send process message
         followup = await interaction.followup.send(
-            f"<a:loading:1112646025090445354> {client.user} resting channel conversation (0/{len(result)})",
+            f"{load_emoji} {client.user} resting channel conversation (0/{len(result)})",
             ephemeral=True)
 
         for i in range(len(result)):
@@ -226,7 +227,7 @@ def set_command(client: commands.Bot, bot_name: str):
                            (conversation, interaction.guild.id, row[1],))
 
             await followup.edit(
-                content=f"<a:loading:1112646025090445354> {client.user} resting channel conversation ({i + 1}/{len(result)})")
+                content=f"{load_emoji} {client.user} resting channel conversation ({i + 1}/{len(result)})")
         db.commit()
 
         # Stop ReplyAt conversation
@@ -235,7 +236,7 @@ def set_command(client: commands.Bot, bot_name: str):
 
         # send process message
         await followup.edit(
-            content=f"<a:loading:1112646025090445354> {client.user} stopping mention conversation (0/{len(result)})")
+            content=f"{load_emoji} {client.user} stopping mention conversation (0/{len(result)})")
 
         for i in range(len(result)):
             row = result[i]
@@ -247,7 +248,7 @@ def set_command(client: commands.Bot, bot_name: str):
                     logging.warning(e)
 
             await followup.edit(
-                content=f"<a:loading:1112646025090445354> {client.user} stopping mention conversation ({i + 1}/{len(result)})")
+                content=f"{load_emoji} {client.user} stopping mention conversation ({i + 1}/{len(result)})")
 
         # delete conversation
         cursor.execute("DELETE FROM ReplyAt WHERE Guild_ID = %s", (interaction.guild.id,))
