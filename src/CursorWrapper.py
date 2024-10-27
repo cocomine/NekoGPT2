@@ -1,9 +1,10 @@
-from sqlite3 import Cursor
+from sqlite3 import Cursor, Connection
 
-from mysql.connector.abstracts import MySQLCursorAbstract
+from mysql.connector.abstracts import MySQLConnectionAbstract
+from mysql.connector.pooling import PooledMySQLConnection
 
 
-def cursor_wrapper(connection):
+def cursor_wrapper(connection: Connection | PooledMySQLConnection | MySQLConnectionAbstract):
     """
     Returns the appropriate cursor wrapper based on the type of the database connection.
 
@@ -13,7 +14,7 @@ def cursor_wrapper(connection):
     Returns:
         A cursor object that is either a MySQL cursor or a wrapped SQLite cursor.
     """
-    if isinstance(connection.cursor(), MySQLCursorAbstract):
+    if isinstance(connection, (PooledMySQLConnection, MySQLConnectionAbstract)):
         # Reconnect if the connection is not active
         if not connection.is_connected():
             connection.reconnect()
