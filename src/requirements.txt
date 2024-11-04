@@ -24,7 +24,7 @@ markdown-it-py==3.0.0
 mdurl==0.1.2
 multidict==6.1.0
 mysql-connector-python==9.1.0
-openai==1.52.2
+openai==1.53.1
 prompt_toolkit==3.0.48
 propcache==0.2.0
 protobuf==5.28.3
