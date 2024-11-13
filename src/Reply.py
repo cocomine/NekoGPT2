@@ -47,10 +47,13 @@ class Reply:
         :return: Message Object List
         """
         ask = message.content
+        file_id_list = []
+
         # check if message is voice message
         if ask == "" and message.attachments[0] is not None:
             attachments = message.attachments[0]
 
+            # if attachments is voice message
             if attachments.is_voice_message():
                 # convert voice message to text
                 ask = await self.stt.speech_to_text(await attachments.read())
@@ -63,8 +66,15 @@ class Reply:
                 embed.set_author(name=f"{message.author}", icon_url=message.author.avatar.url)
                 await msg.edit(content=self.loading_emoji, embed=embed)
 
+        # check if attachments is are image
+        for attachment in message.attachments:
+            if attachment.content_type.startswith("image"):
+                file_id_list.append(await self.prompt.upload_file(attachment))
+            else:
+                await message.reply("🚫 Sorry, I only support image file.")
+
         # reply
-        reply_json = await self.prompt.ask(conversation, msg, ask)
+        reply_json = await self.prompt.ask(conversation, msg, ask, file_id_list=file_id_list)
 
         # convert reply to voice message
         if reply_json is not None:
@@ -94,7 +104,13 @@ class Reply:
 
         await message.add_reaction("✅")  # add check mark
 
-        return [msg]  # return message obj list
+        # delete file
+        for file_id in file_id_list:
+            await self.prompt.delete_file(file_id)
+
+        # return message obj list
+        # 這裏會是list的原因是保留後期可能需要的更變, 如果訊息長度超過
+        return [msg]
 
     # DM
     async def dm(self, message: discord.Message):
@@ -152,7 +168,7 @@ class Reply:
             await msg.edit(view=btn)
 
         except Exception as e:
-            logging.error(e)
+            logging.error(e, exc_info=True)
             # add error reaction
             await message.add_reaction("❌")
             await message.reply("🔥 Oh no! Something went wrong. Please try again later.")
