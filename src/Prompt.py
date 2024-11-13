@@ -140,7 +140,7 @@ class Prompt:
             part_ids=[part_id for part_id in parts_id],
         )
 
-        logger.info(f"File uploaded: {res.file.id}")
+        logger.info(f"File uploaded: {res.file.id}({attachment.size / (1024 * 1024)}MB)")
         return res.file.id
 
     # delete file
