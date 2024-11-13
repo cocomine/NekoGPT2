@@ -1,4 +1,6 @@
 import logging
+import re
+from typing import Dict
 
 import azure.cognitiveservices.speech as speechsdk
 from azure.cognitiveservices.speech import AudioDataStream
@@ -15,20 +17,38 @@ class TTS:
         speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=speech_region)
         speech_config.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Audio24Khz48KBitRateMonoMp3)
         speech_config.set_property(speechsdk.PropertyId.Speech_LogFilename, "../database/azure.log")  #debug
-        speech_config.speech_synthesis_voice_name = 'zh-CN-XiaoyiNeural'
+        speech_config.speech_synthesis_voice_name = 'zh-CN-XiaoxiaoMultilingualNeural'
         self.speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=None)
 
-    async def text_to_speech_bytes(self, text: str) -> bytes:
+    async def text_to_speech_bytes(self, reply_json: Dict[str, str]) -> bytes:
         """
-        Text to Speech
+        Converts text to speech and returns the audio data as bytes.
 
-        :param text: Input Text
-        :return: Output Audio (bytes)
+        :param reply_json: A dictionary containing the following keys:
+            - language (str): The language of the input text.
+            - voice_style (str): The voice style to be used for speech synthesis.
+            - normal_response (str): The input text to be converted to speech.
+        :return: The synthesized speech audio data as bytes.
         """
-        speech_synthesis_result = self.speech_synthesizer.speak_text_async(text).get()
+        # insert ',' after '喵~' or 'meow~'
+        p = re.compile(r"(喵)~(?![！。，？!,?.])")
+        reply_json["normal_response"] = p.sub(r'\1~~,', reply_json["normal_response"])
+
+        p = re.compile(r"(meow)~(?![！。，？!,?.])")
+        reply_json["normal_response"] = p.sub(r'\1~~,', reply_json["normal_response"])
+
+        speech_ssml = f"""
+<speak version="1.0" xmlns="https://www.w3.org/2001/10/synthesis" xml:lang="{reply_json['language']}">
+  <voice name="zh-CN-XiaoyiNeural" sentenceboundarysilence-exact="500ms" commasilence-exact="500ms">
+    {reply_json["normal_response"]}
+  </voice>
+</speak>
+        """
+
+        speech_synthesis_result = self.speech_synthesizer.speak_ssml_async(speech_ssml).get()
 
         if speech_synthesis_result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-            logging.debug("Speech synthesized for text [{}]".format(text))
+            logging.debug("Speech synthesized for text [{}]".format(reply_json["normal_response"]))
         elif speech_synthesis_result.reason == speechsdk.ResultReason.Canceled:
             cancellation_details = speech_synthesis_result.cancellation_details
             logging.debug("Speech synthesis canceled: {}".format(cancellation_details.reason))
@@ -39,20 +59,36 @@ class TTS:
 
         return speech_synthesis_result.audio_data
 
-    async def text_to_speech_file(self, text: str, file_name: str) -> None:
-        """
-        Text to Speech
+    async def text_to_speech_file(self, reply_json: Dict[str, str], file_name: str) -> None:
 
-        :param text: Input Text
-        :param file_name: Output Audio File Name
-        """
-        speech_synthesis_result = self.speech_synthesizer.speak_text_async(text).get()
+        #insert break after '喵~' or 'meow~'
+        p = re.compile(r"(喵)~(?![！。，？!,?.])")
+        reply_json["normal_response"] = p.sub(r'\1~<break time="150ms"/>', reply_json["normal_response"])
 
+        p = re.compile(r"(meow)~(?![！。，？!,?.])", re.IGNORECASE)
+        reply_json["normal_response"] = p.sub(r'\1~<break time="150ms"/>', reply_json["normal_response"])
+
+        speech_ssml = f"""
+<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xmlns:emo="http://www.w3.org/2009/10/emotionml" xml:lang="zh-CN">
+    <voice name="zh-CN-XiaoxiaoMultilingualNeural" sentenceboundarysilence-exact="300ms" commasilence-exact="200ms" tailingsilence="1s">
+        <mstts:express-as style="{reply_json["voice_style"]}">
+            <prosody rate="+20.00%" pitch="+25.00%">
+                {reply_json["normal_response"]}
+            </prosody>
+        </mstts:express-as>
+    </voice>
+</speak>
+        """
+
+        # Synthesize the text to speech
+        speech_synthesis_result = self.speech_synthesizer.speak_ssml_async(speech_ssml).get()
+
+        # Save the synthesized audio data to a file
         audio_data_stream = AudioDataStream(speech_synthesis_result)
         audio_data_stream.save_to_wav_file(file_name)
 
         if speech_synthesis_result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-            logging.debug("Speech synthesized for text [{}]".format(text))
+            logging.debug("Speech synthesized for text [{}] w/ {}".format(reply_json['normal_response'], reply_json["voice_style"]))
         elif speech_synthesis_result.reason == speechsdk.ResultReason.Canceled:
             cancellation_details = speech_synthesis_result.cancellation_details
             logging.debug("Speech synthesis canceled: {}".format(cancellation_details.reason))

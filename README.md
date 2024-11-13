@@ -44,7 +44,7 @@ environment:
     - DISCORD_CUSTOM_LOADING_EMOJI=
 ```
 
-3.1: Fill in the corresponding information in the file.
+#### 3.1: Fill in the corresponding information in the file.
 - BOT_NAME: 
   - The name of your bot.
 - DISCORD_TOKEN: 
@@ -67,7 +67,7 @@ environment:
 - DISCORD_CUSTOM_LOADING_EMOJI:
   - (Optional) The custom emoji used when the bot is loading. Default is `🔄`.
 
-3.2: Replace **volumes** with the path to the folder where you want to store the database.
+#### 3.2: Replace **volumes** with the path to the folder where you want to store the database.
 ```YAML
 volumes:
     # Replace this with the path to the folder where you want to store the database.

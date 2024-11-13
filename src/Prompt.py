@@ -1,8 +1,10 @@
+import json
 import os
+import re
+from typing import Dict
 from venv import logger
 
 import discord
-from discord import Message
 from openai import OpenAI
 from openai.types.beta.assistant_stream_event import ThreadMessageDelta, ThreadMessageCompleted
 
@@ -32,7 +34,7 @@ class Prompt:
         await self.client.beta.threads.delete(thread_id=conversation_id)
 
     # ask ChatGPT
-    async def ask(self, conversation_id: str, message: discord.Message, prompt: str) -> tuple[str, list[Message]]:
+    async def ask(self, conversation_id: str, message: discord.Message, prompt: str) -> Dict[str, str] | None:
         """ask ChatGPT and return message and message obj list
 
         :param conversation_id: conversation id to ask
@@ -44,7 +46,6 @@ class Prompt:
             message_obj_list: all discord message obj list"""
 
         async with message.channel.typing():
-            message_obj_list = [message]  # all discord message obj list
             msg_all = ""  # all season message
             already_send_msg_len = 0 # already send message length
 
@@ -69,13 +70,21 @@ class Prompt:
 
                 # send message
                 # if message is not empty and new message length is more than 10
-                if msg_all != "" and (len(msg_all) - already_send_msg_len) > 10:
-                    await message.edit(content=msg_all)
+                if msg_all != "" and (len(msg_all) - already_send_msg_len) > 20:
+                    regex_result = re.search("^(.+)(\"normal_response\":\")(.[^\"}]*)(.*)$", msg_all)
+
+                    # only send in case of normal_response
+                    if regex_result and regex_result.group(3):
+                        msg_tmp = regex_result.group(3)
+                        await message.edit(content=msg_tmp)
+
                     already_send_msg_len = len(msg_all)
 
                 # if message is completed
                 if isinstance(event, ThreadMessageCompleted):
-                    await message.edit(content=msg_all)
+                    json_msg = json.loads(event.data.content[0].text.value)
+                    await message.edit(content=json_msg["normal_response"])
                     logger.info(f"ChatGPT: {msg_all}")
+                    return json_msg
 
-            return msg_all, message_obj_list
+            return None

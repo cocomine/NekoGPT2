@@ -25,7 +25,7 @@ from Create_Assistant import create_assistant
 def start(bot_name="ChatGPT"):
     logging.basicConfig(level=(logging.DEBUG if os.getenv('LOG_LEVEL') == "debug" else logging.INFO))  # set logging level
     handler = logging.FileHandler(filename='../database/bot.log', encoding='utf-8', mode='w')  # create log file handler
-    logging.info(f"{bot_name} Discord Bot is starting... (v2.0.0)")
+    logging.info(f"{bot_name} Discord Bot is starting... (v2.1.0)")
 
     # check openai key
     if os.getenv("OPENAI_API_KEY") is None or os.getenv("OPENAI_API_KEY") == "":

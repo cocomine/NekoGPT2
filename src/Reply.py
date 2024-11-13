@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import re
 from os.path import exists
 
 import discord
@@ -65,24 +64,16 @@ class Reply:
                 await msg.edit(content=self.loading_emoji, embed=embed)
 
         # reply
-        reply, message_obj_list = await self.prompt.ask(conversation, msg, ask)
-        msg = message_obj_list[len(message_obj_list) - 1]
+        reply_json = await self.prompt.ask(conversation, msg, ask)
 
         # convert reply to voice message
-        if reply != "":
+        if reply_json is not None:
             # add Generating voice message button
             btn = GenAudioBtn()
             await msg.edit(view=btn)
 
-            # insert ',' after '喵~' or 'meow~'
-            p = re.compile(r"(喵)~(?![！。，？!,?.])")
-            speech_text = p.sub(r'\1~，', reply)
-
-            p = re.compile(r"(meow)~(?![！。，？!,?.])")
-            speech_text = p.sub(r'\1~,', speech_text)
-
             # convert text to voice message
-            await self.tts.text_to_speech_file(speech_text, f"voice-message_{conversation}.mp3")
+            await self.tts.text_to_speech_file(reply_json, f"voice-message_{conversation}.mp3")
 
             # convert voice message to mp4
             Mp3ToMp4.convert(f"voice-message_{conversation}.mp3", f"voice-message_{conversation}.mp4")
@@ -103,7 +94,7 @@ class Reply:
 
         await message.add_reaction("✅")  # add check mark
 
-        return message_obj_list  # return message obj list
+        return [msg]  # return message obj list
 
     # DM
     async def dm(self, message: discord.Message):
