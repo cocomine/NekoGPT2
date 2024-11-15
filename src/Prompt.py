@@ -1,11 +1,10 @@
 import json
 import os
 import re
-from typing import Dict, List
+from typing import Dict
 from venv import logger
 
 import discord
-from anyio import sleep
 from openai import AsyncOpenAI
 from openai.types.beta.assistant_stream_event import ThreadMessageDelta, ThreadMessageCompleted
 
@@ -35,11 +34,11 @@ class Prompt:
         await self.client.beta.threads.delete(thread_id=conversation_id)
 
     # ask ChatGPT
-    async def ask(self, conversation_id: str, message: discord.Message, prompt: str, *,
-                  file_id_list: List[str] = None) -> Dict[str, str] | None:
+    async def ask(self, conversation_id: str, message: discord.Message, prompt: str = "", *,
+                  file_url_list=None) -> Dict[str, str] | None:
         """ask ChatGPT and return message and message obj list
 
-        :param file_id_list: file id list want to send
+        :param file_url_list: file url list to ask
         :param conversation_id: conversation id to ask
         :param message: discord message obj
         :param prompt: prompt to ask
@@ -48,15 +47,18 @@ class Prompt:
             message: message in one season
             message_obj_list: all discord message obj list"""
 
+        # if file_url_list is None, set empty list
+        if file_url_list is None:
+            file_url_list = []
+
         async with message.channel.typing():
             # send prompt
-            content = [{"type": "image_file", "image_file": {"file_id": x, "detail": "low"}} for x in
-                       file_id_list] if file_id_list else []
-            content.append({"type": "text", "text": prompt})
+            content = [{"type": "image_url", "image_url": {"url": url, "detail": "low"}} for url in file_url_list]
+            prompt != "" and content.append({"type": "text", "text": prompt})
             await self.client.beta.threads.messages.create(
                 thread_id=conversation_id,
                 role="user",
-                content=content
+                content=content,
             )
 
             # get message stream
@@ -108,38 +110,39 @@ class Prompt:
         # read file buffer
         file_buffer = await attachment.read()
 
-        # create upload
-        uploads = await self.client.uploads.create(
-            filename=attachment.filename,
-            purpose="vision",
-            mime_type=attachment.content_type,
-            bytes=attachment.size
-        )
-
-        # upload file part
-        parts_id: List[str] = []
-        # parts = self.client.uploads.parts.create(
-        #     upload_id=uploads.id,
-        #     data=file_buffer
+        # # create upload
+        # uploads = await self.client.uploads.create(
+        #     filename=attachment.filename,
+        #     purpose="vision",
+        #     mime_type=attachment.content_type,
+        #     bytes=attachment.size
         # )
-        # parts_id.append(parts.id)
+        #
+        # # upload file part
+        # parts_id: List[str] = []
+        #
+        # for i in range(0, len(file_buffer), 1024 * 1024): # 1MB
+        #     await sleep(100)
+        #     part = await self.client.uploads.parts.create(
+        #         upload_id=uploads.id,
+        #         data=file_buffer[i:i + 1024 * 1024]
+        #     )
+        #     parts_id.append(part.id)
+        #
+        # # complete upload
+        # res = await self.client.uploads.complete(
+        #     upload_id=uploads.id,
+        #     part_ids=[part_id for part_id in parts_id],
+        # )
 
-        for i in range(0, len(file_buffer), 1024 * 1024): # 1MB
-            await sleep(100)
-            part = await self.client.uploads.parts.create(
-                upload_id=uploads.id,
-                data=file_buffer[i:i + 1024 * 1024]
-            )
-            parts_id.append(part.id)
-
-        # complete upload
-        res = await self.client.uploads.complete(
-            upload_id=uploads.id,
-            part_ids=[part_id for part_id in parts_id],
+        # upload file
+        res = await self.client.files.create(
+            purpose="vision",
+            file=file_buffer
         )
 
-        logger.info(f"File uploaded: {res.file.id}({attachment.size / (1024 * 1024)}MB)")
-        return res.file.id
+        logger.info(f"File uploaded: {res.id}({attachment.size / 1024}KB)")
+        return res.id
 
     # delete file
     async def delete_file(self, file_id: str):

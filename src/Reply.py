@@ -17,6 +17,7 @@ from ReGenBtn import ReGenBtn
 from STT import STT
 from TTS import TTS
 
+support_image_type = ["image/png", "image/jpg", "image/jpeg", "image/webp", "image/gif"]
 
 class Reply:
     replying_dm = []  # in replying dm user list
@@ -47,7 +48,7 @@ class Reply:
         :return: Message Object List
         """
         ask = message.content
-        file_id_list = []
+        file_url_list = []
 
         # check if message is voice message
         if ask == "" and message.attachments[0] is not None:
@@ -68,13 +69,14 @@ class Reply:
 
         # check if attachments is are image
         for attachment in message.attachments:
-            if attachment.content_type.startswith("image"):
-                file_id_list.append(await self.prompt.upload_file(attachment))
+            # check is (.png, .jpg, .jpeg, .webp, .gif)
+            if support_image_type.count(attachment.content_type) > 0:
+                file_url_list.append(attachment.url)
             else:
-                await message.reply("🚫 Sorry, I only support image file.")
+                await message.reply(f"🚫 Sorry, only support .png, .jpg, .jpeg, .webp, .gif file. Your file:`{attachment.filename}`")
 
         # reply
-        reply_json = await self.prompt.ask(conversation, msg, ask, file_id_list=file_id_list)
+        reply_json = await self.prompt.ask(conversation, msg, ask, file_url_list=file_url_list)
 
         # convert reply to voice message
         if reply_json is not None:
@@ -103,10 +105,6 @@ class Reply:
                 await msg.edit(view=btn)
 
         await message.add_reaction("✅")  # add check mark
-
-        # delete file
-        for file_id in file_id_list:
-            await self.prompt.delete_file(file_id)
 
         # return message obj list
         # 這裏會是list的原因是保留後期可能需要的更變, 如果訊息長度超過

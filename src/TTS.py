@@ -81,6 +81,7 @@ class TTS:
         """
 
         # Synthesize the text to speech
+        logging.info("Synthesizing speech for text: {}".format(reply_json["normal_response"]))
         speech_synthesis_result = self.speech_synthesizer.speak_ssml_async(speech_ssml).get()
 
         # Save the synthesized audio data to a file
@@ -88,7 +89,7 @@ class TTS:
         audio_data_stream.save_to_wav_file(file_name)
 
         if speech_synthesis_result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-            logging.debug("Speech synthesized for text [{}] w/ {}".format(reply_json['normal_response'], reply_json["voice_style"]))
+            logging.debug("Speech synthesized for text.")
         elif speech_synthesis_result.reason == speechsdk.ResultReason.Canceled:
             cancellation_details = speech_synthesis_result.cancellation_details
             logging.debug("Speech synthesis canceled: {}".format(cancellation_details.reason))
