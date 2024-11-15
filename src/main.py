@@ -7,7 +7,7 @@ import mysql.connector
 import redis.asyncio as redis
 from discord.ext import commands
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import AsyncOpenAI
 from redis.asyncio.retry import Retry
 from redis.backoff import ExponentialBackoff
 from redis.exceptions import (BusyLoadingError, ConnectionError, TimeoutError)
@@ -33,9 +33,9 @@ def start(bot_name="ChatGPT"):
 
     # create openai client
     if os.getenv("OPENAI_BASE_URL") == "default" or os.getenv("OPENAI_BASE_URL") is None or os.getenv("OPENAI_BASE_URL") == "":
-        share_var.openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), base_url="https://api.openai.com/v1")
+        share_var.openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"), base_url="https://api.openai.com/v1")
     else:
-        share_var.openai_client = OpenAI(base_url=os.getenv("OPENAI_BASE_URL"), api_key=os.getenv("OPENAI_API_KEY"))
+        share_var.openai_client = AsyncOpenAI(base_url=os.getenv("OPENAI_BASE_URL"), api_key=os.getenv("OPENAI_API_KEY"))
     logging.info(f"{bot_name} ChatGPT is connected.")
 
     # check OPENAI_ASSISTANT_ID

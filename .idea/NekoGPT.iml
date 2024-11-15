@@ -10,4 +10,8 @@
     <orderEntry type="jdk" jdkName="Python 3.10 (NekoGPT2)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
+  <component name="PackageRequirementsSettings">
+    <option name="requirementsPath" value="D:\minecraft_JDK\Desktop\NekoGPT2\src\requirements.txt" />
+    <option name="versionSpecifier" value="大于或等于 (&gt;=x.y.z)" />
+  </component>
 </module>

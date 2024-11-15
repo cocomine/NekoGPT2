@@ -1,9 +1,9 @@
 import logging
 
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 
 
-def create_assistant(client: OpenAI):
+async def create_assistant(client: AsyncOpenAI):
     """
     Creates an assistant using the OpenAI client.
 
@@ -15,7 +15,7 @@ def create_assistant(client: OpenAI):
     the user to set the assistant ID in their environment variables.
     """
 
-    assistants = client.beta.assistants.create(
+    assistants = await client.beta.assistants.create(
         name="NekoGPT2",
         model="gpt-4o-mini",
         instructions=default_prompt,
