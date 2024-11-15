@@ -30,21 +30,26 @@ class TTS:
             - normal_response (str): The input text to be converted to speech.
         :return: The synthesized speech audio data as bytes.
         """
-        # insert ',' after '喵~' or 'meow~'
+        # insert break after '喵~' or 'meow~'
         p = re.compile(r"(喵)~(?![！。，？!,?.])")
-        reply_json["normal_response"] = p.sub(r'\1~~,', reply_json["normal_response"])
+        reply_json["normal_response"] = p.sub(r'\1~<break time="150ms"/>', reply_json["normal_response"])
 
-        p = re.compile(r"(meow)~(?![！。，？!,?.])")
-        reply_json["normal_response"] = p.sub(r'\1~~,', reply_json["normal_response"])
+        p = re.compile(r"(meow)~(?![！。，？!,?.])", re.IGNORECASE)
+        reply_json["normal_response"] = p.sub(r'\1~<break time="150ms"/>', reply_json["normal_response"])
 
         speech_ssml = f"""
-<speak version="1.0" xmlns="https://www.w3.org/2001/10/synthesis" xml:lang="{reply_json['language']}">
-  <voice name="zh-CN-XiaoyiNeural" sentenceboundarysilence-exact="500ms" commasilence-exact="500ms">
-    {reply_json["normal_response"]}
-  </voice>
-</speak>
-        """
+        <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xmlns:emo="http://www.w3.org/2009/10/emotionml" xml:lang="zh-CN">
+            <voice name="zh-CN-XiaoxiaoMultilingualNeural" sentenceboundarysilence-exact="300ms" commasilence-exact="200ms" tailingsilence="1s">
+                <mstts:express-as style="{reply_json["voice_style"]}">
+                    <prosody rate="+20.00%" pitch="+25.00%">
+                        {reply_json["normal_response"]}
+                    </prosody>
+                </mstts:express-as>
+            </voice>
+        </speak>
+                """
 
+        logging.info("Synthesizing speech for text: {}".format(reply_json["normal_response"]))
         speech_synthesis_result = self.speech_synthesizer.speak_ssml_async(speech_ssml).get()
 
         if speech_synthesis_result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:

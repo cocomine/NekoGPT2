@@ -1,6 +1,0 @@
-discord.py>=2.4.0
-mysql-connector-python>=9.1.0
-redis>=5.1.1
-python-dotenv>=1.0.1
-openai>=1.54.4
-anyio>=4.6.2.post1

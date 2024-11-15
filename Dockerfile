@@ -1,4 +1,4 @@
-FROM python:3.10.15-slim-bullseye
+FROM python:3.10.11-slim-bullseye
 LABEL authors="cocomine"
 LABEL version="2.0.0"
 WORKDIR /bot
@@ -46,7 +46,7 @@ RUN apt --yes remove build-essential
 
 # Add requirements
 RUN mkdir "../database"
-ADD src/requirements.txt ./
+ADD requirements.txt ./
 RUN pip install -r requirements.txt
 
 # Add file
