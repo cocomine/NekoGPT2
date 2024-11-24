@@ -6,7 +6,8 @@ from venv import logger
 
 import discord
 from openai import AsyncOpenAI
-from openai.types.beta.assistant_stream_event import ThreadMessageDelta, ThreadMessageCompleted
+from openai.types.beta.assistant_stream_event import ThreadMessageDelta, ThreadMessageCompleted, ThreadRunFailed, \
+    ThreadRunExpired
 
 
 class Prompt:
@@ -73,6 +74,10 @@ class Prompt:
             already_send_msg_len = 0  # already send message length
             json_msg = None  # json message
             async for event in stream:
+
+                # debug
+                logger.debug(event) if os.getenv('PYTHON_ENV') != 'production' else None
+
                 # get message in stream
                 if isinstance(event, ThreadMessageDelta):
                     value = event.data.delta.content[0].text.value
@@ -96,6 +101,16 @@ class Prompt:
                     json_msg = json.loads(event.data.content[0].text.value)
                     await message.edit(content=json_msg["normal_response"])
                     logger.info(f"ChatGPT: {msg_all}")
+
+                # if message is failed
+                if isinstance(event, ThreadRunFailed):
+                    logger.error(f"ChatGPT: {event.data.error}")
+                    await message.reply(content="🔥 Some errors were encountered while responding, please try again later. If this persists please try resetting the conversation.")
+
+                # if message is expired
+                if isinstance(event, ThreadRunExpired):
+                    logger.error(f"ChatGPT: {event.data.error}")
+                    await message.reply(content="⏳ The conversation has expired. Please reset your conversation.")
 
             return json_msg
 

@@ -77,7 +77,7 @@ class TTS:
 <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xmlns:emo="http://www.w3.org/2009/10/emotionml" xml:lang="zh-CN">
     <voice name="zh-CN-XiaoxiaoMultilingualNeural" sentenceboundarysilence-exact="300ms" commasilence-exact="200ms" tailingsilence="1s">
         <mstts:express-as style="{reply_json["voice_style"]}">
-            <prosody rate="+20.00%" pitch="+25.00%">
+            <prosody rate="+20.00%" pitch="+20.00%">
                 {reply_json["normal_response"]}
             </prosody>
         </mstts:express-as>
