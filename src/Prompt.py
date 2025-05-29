@@ -104,13 +104,13 @@ class Prompt:
 
                 # if message is failed
                 if isinstance(event, ThreadRunFailed):
-                    logger.error(f"ChatGPT: {event.data.error}")
                     await message.reply(content="🔥 Some errors were encountered while responding, please try again later. If this persists please try resetting the conversation.")
+                    logger.error(f"ChatGPT: {event.data.error}")
 
                 # if message is expired
                 if isinstance(event, ThreadRunExpired):
-                    logger.error(f"ChatGPT: {event.data.error}")
                     await message.reply(content="⏳ The conversation has expired. Please reset your conversation.")
+                    logger.error(f"ChatGPT: {event.data.error}")
 
             return json_msg
 
