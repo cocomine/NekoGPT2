@@ -1,7 +1,6 @@
-FROM python:3.10.11-slim-bullseye
+FROM ghcr.io/astral-sh/uv:python3.10-bookworm-slim
 LABEL authors="cocomine"
 LABEL version="2.0.0"
-WORKDIR /bot
 
 ENV PYTHON_ENV production
 ENV DISCORD_TOKEN (Your Discord token)
@@ -45,12 +44,14 @@ RUN apt --yes remove wget
 RUN apt --yes remove build-essential
 
 # Add requirements
-RUN mkdir "../database"
-ADD requirements.txt ./
-RUN pip install -r requirements.txt
+ADD pyproject.toml /app
+ADD uv.lock /app
+WORKDIR /app
+RUN mkdir "/database"
+RUN uv sync --locked
 
-# Add file
-ADD src/ ./
+# Add source code
+ADD /src /app
 
 # Add volume
 VOLUME ["/database"]

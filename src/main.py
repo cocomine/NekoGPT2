@@ -12,7 +12,7 @@ from redis.asyncio.retry import Retry
 from redis.backoff import ExponentialBackoff
 from redis.exceptions import (BusyLoadingError, ConnectionError, TimeoutError)
 
-load_dotenv("../database/.env")  # load .env file
+load_dotenv("./database/.env")  # load .env file
 
 import DatabaseHelper
 import share_var
@@ -24,7 +24,7 @@ from Create_Assistant import create_assistant
 # starting bot
 def start(bot_name="ChatGPT"):
     logging.basicConfig(level=(logging.DEBUG if os.getenv('LOG_LEVEL') == "debug" else logging.INFO))  # set logging level
-    handler = logging.FileHandler(filename='../database/bot.log', encoding='utf-8', mode='w')  # create log file handler
+    handler = logging.FileHandler(filename='./database/bot.log', encoding='utf-8', mode='w')  # create log file handler
     logging.info(f"{bot_name} Discord Bot is starting... (v2.2.1)")
 
     # check openai key
@@ -52,7 +52,7 @@ def start(bot_name="ChatGPT"):
     if os.getenv("SQL_DRIVER") == "sqlite3" or os.getenv("SQL_DRIVER") is None or os.getenv("SQL_DRIVER") == "":
         # create sqlite connection
         logging.info(f"{bot_name} Connecting to sqlite...")
-        share_var.sql_conn = sqlite3.connect("../database/nekogpt_database.db")
+        share_var.sql_conn = sqlite3.connect("./database/nekogpt_database.db")
         logging.info(f"{bot_name} sqlite is connected.")
     elif os.getenv("SQL_DRIVER") == "mysql":
         # create mysql connection
